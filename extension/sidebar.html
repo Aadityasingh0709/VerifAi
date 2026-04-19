@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>VerifAI</title>
+    <link rel="stylesheet" href="sidebar.css" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo">V</div>
+        <div class="brand-text">
+          <div class="brand-name">VerifAI</div>
+          <div class="brand-sub">Hallucination Audit Trail</div>
+        </div>
+      </div>
+      <div id="domain-pill" class="domain-pill hidden">
+        <span class="dot"></span>
+        <span id="domain-pill-label">General</span>
+      </div>
+    </header>
+
+    <section class="gauge-section">
+      <svg id="gauge" viewBox="0 0 200 120" aria-label="Trust score gauge">
+        <!-- background arc -->
+        <path
+          d="M 20 110 A 80 80 0 0 1 180 110"
+          fill="none"
+          stroke="#1e293b"
+          stroke-width="14"
+          stroke-linecap="round"
+        />
+        <!-- foreground arc (animated in JS) -->
+        <path
+          id="gauge-fg"
+          d="M 20 110 A 80 80 0 0 1 180 110"
+          fill="none"
+          stroke="#3b82f6"
+          stroke-width="14"
+          stroke-linecap="round"
+          stroke-dasharray="251.3"
+          stroke-dashoffset="251.3"
+        />
+        <text
+          id="gauge-score"
+          x="100"
+          y="98"
+          text-anchor="middle"
+          font-size="36"
+          font-weight="700"
+          fill="#f1f5f9"
+        >
+          —
+        </text>
+        <text
+          id="gauge-band"
+          x="100"
+          y="118"
+          text-anchor="middle"
+          font-size="11"
+          fill="#94a3b8"
+        >
+          Awaiting audit
+        </text>
+      </svg>
+    </section>
+
+    <section id="idle-panel" class="panel">
+      <p class="hint">
+        Highlight text on any page and right-click
+        <b>"Verify with VerifAI"</b>, or press
+        <b>Scan This Page</b> to audit the full visible text.
+      </p>
+
+      <div class="actions">
+        <button id="btn-scan-page" class="btn-primary">Scan This Page</button>
+        <button id="btn-paste" class="btn-ghost">Paste & Verify</button>
+      </div>
+
+      <div id="paste-wrap" class="paste-wrap hidden">
+        <textarea
+          id="paste-area"
+          placeholder="Paste AI-generated text to verify..."
+        ></textarea>
+        <button id="btn-run-paste" class="btn-primary">Run Audit</button>
+      </div>
+
+      <div class="samples">
+        <div class="samples-label">Try a sample</div>
+        <div id="samples-list" class="samples-list"></div>
+      </div>
+    </section>
+
+    <section id="progress-panel" class="panel hidden">
+      <div class="progress-stage" id="progress-stage">Queued...</div>
+      <div class="progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+      <div class="progress-meta">
+        <span id="progress-meta-left">0 / 0 claims</span>
+        <span id="progress-meta-right">0%</span>
+      </div>
+      <div id="live-feed" class="live-feed"></div>
+    </section>
+
+    <section id="results-panel" class="panel hidden">
+      <div id="exec-summary" class="exec-summary hidden"></div>
+      <div class="stat-row">
+        <div class="stat stat-verified">
+          <span id="stat-verified" class="stat-num">0</span>
+          <span class="stat-label">Verified</span>
+        </div>
+        <div class="stat stat-unverified">
+          <span id="stat-unverified" class="stat-num">0</span>
+          <span class="stat-label">Unverified</span>
+        </div>
+        <div class="stat stat-hallucinated">
+          <span id="stat-hallucinated" class="stat-num">0</span>
+          <span class="stat-label">Hallucinated</span>
+        </div>
+      </div>
+
+      <div class="results-actions">
+        <button id="btn-download-pdf" class="btn-ghost">
+          Download PDF Certificate
+        </button>
+        <button id="btn-highlight-page" class="btn-ghost">
+          Highlight On Page
+        </button>
+        <button id="btn-reset" class="btn-ghost">New Audit</button>
+      </div>
+
+      <div id="correct-info-panel" class="correct-info-panel hidden">
+        <div class="correct-info-header">✅ Verified Correct Information</div>
+        <div id="correct-info-body" class="correct-info-body"></div>
+      </div>
+
+      <div id="claim-list" class="claim-list"></div>
+    </section>
+
+    <section id="error-panel" class="panel hidden">
+      <div class="error-card">
+        <div class="error-title">Something went wrong</div>
+        <div id="error-body" class="error-body"></div>
+        <button id="btn-error-dismiss" class="btn-ghost">Back</button>
+      </div>
+    </section>
+
+    <footer class="footerbar">
+      Local backend:
+      <span id="backend-status" class="pulse-dot"></span>
+      <span id="backend-label">checking...</span>
+    </footer>
+
+    <script src="sidebar.js"></script>
+  </body>
+</html>
