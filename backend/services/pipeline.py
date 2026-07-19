@@ -280,6 +280,7 @@ def _build_result(
         "audit_id": audit_id,
         "document_title": live.get("document_title", ""),
         "document_text": live.get("document_text", ""),
+        "created_at": live.get("created_at", datetime.now(timezone.utc).isoformat()),
         "status": status,
         "stage": stage,
         "stage_label": STAGE_LABELS.get(stage, stage),

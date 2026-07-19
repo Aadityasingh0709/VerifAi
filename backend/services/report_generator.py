@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import html
+from io import BytesIO
 from datetime import datetime, timezone
 from typing import List
 
@@ -134,10 +135,64 @@ def _pdf_css() -> str:
     """
 
 
+def _render_reportlab_pdf(result: AuditResult, trust_score: TrustScore, created: str) -> bytes:
+    """Windows-safe PDF fallback when WeasyPrint's native GTK stack is unavailable."""
+    from reportlab.lib import colors
+    from reportlab.lib.enums import TA_CENTER
+    from reportlab.lib.pagesizes import A4
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import mm
+    from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer
+
+    output = BytesIO()
+    document = SimpleDocTemplate(
+        output,
+        pagesize=A4,
+        rightMargin=18 * mm,
+        leftMargin=18 * mm,
+        topMargin=18 * mm,
+        bottomMargin=18 * mm,
+    )
+    styles = getSampleStyleSheet()
+    title_style = ParagraphStyle("AuditTitle", parent=styles["Title"], alignment=TA_CENTER, spaceAfter=10)
+    score_style = ParagraphStyle(
+        "AuditScore", parent=styles["Title"], alignment=TA_CENTER, textColor=colors.HexColor(trust_score.color)
+    )
+    body = styles["BodyText"]
+    body.spaceAfter = 8
+    story = [
+        Paragraph("VerifAI Hallucination Audit Certificate", title_style),
+        Paragraph(f"<b>Document:</b> {html.escape(result.document_title or 'Untitled')}", body),
+        Paragraph(f"<b>Audit timestamp:</b> {created}", body),
+        Paragraph(f"<b>Audit ID:</b> {html.escape(result.audit_id)}", body),
+        Paragraph(f"{trust_score.score} — {html.escape(trust_score.band)}", score_style),
+        Spacer(1, 8),
+        Paragraph(
+            "<b>Summary:</b> "
+            f"{trust_score.verified_count} verified, {trust_score.unverified_count} unverified, "
+            f"and {trust_score.hallucinated_count} hallucinated claims.",
+            body,
+        ),
+        Paragraph("Claim-by-Claim Breakdown", styles["Heading2"]),
+    ]
+    for claim_verdict in result.claims:
+        claim = claim_verdict.claim
+        story.append(
+            Paragraph(
+                f"<b>#{claim.id} — {claim_verdict.verdict} ({claim_verdict.confidence}% confidence)</b><br/>"
+                f"{html.escape(claim.claim_text)}<br/>"
+                f"<i>Reasoning:</i> {html.escape(claim_verdict.reasoning)}",
+                body,
+            )
+        )
+        if claim_verdict.best_source_url:
+            story.append(Paragraph(f"Source: {html.escape(claim_verdict.best_source_url)}", body))
+    document.build(story)
+    return output.getvalue()
+
+
 def render_pdf_bytes(result: AuditResult) -> bytes:
     """Render the audit report to PDF bytes using WeasyPrint."""
-    from weasyprint import HTML, CSS
-
     ts = result.trust_score or calculate_trust_score(result.claims)
     domain_name = (result.domain.domain.title() if result.domain else "General")
     created = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
@@ -214,4 +269,9 @@ def render_pdf_bytes(result: AuditResult) -> bytes:
       </div>
     </body></html>
     """
-    return HTML(string=doc).write_pdf(stylesheets=[CSS(string=_pdf_css())])
+    try:
+        from weasyprint import CSS, HTML
+
+        return HTML(string=doc).write_pdf(stylesheets=[CSS(string=_pdf_css())])
+    except (ImportError, OSError):
+        return _render_reportlab_pdf(result, ts, created)

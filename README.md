@@ -49,10 +49,11 @@ verifai/
 ### 1. Backend
 
 ```bash
-cd verifai/backend
-pip install -r requirements.txt
+cd VerifAi
+python -m venv .venv
+.venv/Scripts/python.exe -m pip install -r backend/requirements.txt
 cp .env.example .env      # add real API keys OR leave blank for mock mode
-python -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
+.venv/Scripts/python.exe -m uvicorn backend.main:app --host 127.0.0.1 --port 8000 --reload
 ```
 
 The backend exposes:
@@ -141,7 +142,7 @@ VerifAI is the first tool a regular person can use to verify any AI output on an
 - Anthropic Python SDK (Claude Sonnet 4)
 - Tavily / Serper / Brave search APIs
 - SQLite + SQLAlchemy
-- WeasyPrint (PDF)
+- WeasyPrint with a ReportLab fallback for PDF generation on Windows
 - httpx (for Serper & Brave)
 
 ## Status

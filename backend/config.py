@@ -5,9 +5,10 @@ import os
 from pathlib import Path
 from dotenv import load_dotenv
 
-# Load .env from backend/ regardless of where uvicorn is launched from.
-_ENV_PATH = Path(__file__).resolve().parent / ".env"
-load_dotenv(_ENV_PATH)
+# Prefer backend/.env, then accept a project-root .env for the documented quick start.
+_BACKEND_DIR = Path(__file__).resolve().parent
+load_dotenv(_BACKEND_DIR.parent / ".env")
+load_dotenv(_BACKEND_DIR / ".env", override=True)
 
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "").strip()
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "").strip()
@@ -34,12 +35,17 @@ def _resolve_llm_provider() -> tuple[str, str, str]:
 
 LLM_PROVIDER, LLM_API_KEY, LLM_MODEL = _resolve_llm_provider()
 
+
+def _env_flag(name: str) -> bool:
+    return os.getenv(name, "").strip().lower() in {"1", "true", "yes", "on"}
+
 # Extension talks from a browser context — allow all origins by default.
 CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "*").split(",") if o.strip()]
 
-# Mock mode: when set, use canned fixtures instead of real API calls.
-MOCK_MODE = bool(os.getenv("MOCK_MODE", "").strip())
-MOCK_SEARCH = bool(os.getenv("MOCK_SEARCH", "").strip())
+# Mock mode: use canned fixtures when explicitly requested or no LLM is configured.
+# This keeps a fresh clone usable for the sample documents without paid API keys.
+MOCK_MODE = _env_flag("MOCK_MODE") or not LLM_API_KEY
+MOCK_SEARCH = _env_flag("MOCK_SEARCH")
 
 # Pipeline limits
 MAX_CLAIMS_PER_DOC = int(os.getenv("MAX_CLAIMS_PER_DOC", "12"))
