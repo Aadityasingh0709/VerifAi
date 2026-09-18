@@ -1,0 +1,33 @@
+/* VerifAI in-page highlight styles (injected via content.js) */
+
+span.verifai-hl {
+  cursor: pointer;
+  padding: 0 1px;
+  border-radius: 2px;
+  transition: background 120ms ease;
+}
+
+span.verifai-hl-verified {
+  border-bottom: 2px solid #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+}
+
+span.verifai-hl-unverified {
+  border-bottom: 2px solid #f59e0b;
+  background: rgba(245, 158, 11, 0.12);
+}
+
+span.verifai-hl-hallucinated {
+  border-bottom: 2px solid #ef4444;
+  background: rgba(239, 68, 68, 0.18);
+  font-weight: 600;
+}
+
+span.verifai-hl:hover {
+  filter: brightness(0.95);
+}
+
+span.verifai-hl-icon {
+  font-size: 0.75em;
+  margin-right: 2px;
+}
