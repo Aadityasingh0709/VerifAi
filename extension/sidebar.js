@@ -224,7 +224,15 @@ async function onScanPage() {
       return showError("Cannot scan browser settings or internal pages (like chrome://). Please open a regular webpage (like Wikipedia, an article, or ChatGPT) and click Scan again.");
     }
 
-    const isPDF = url.toLowerCase().includes(".pdf") || (tab.title || "").toLowerCase().endsWith(".pdf");
+    // Detect PDF — use URL-based fetch bypass instead of DOM extraction
+    const isPDF = url.toLowerCase().endsWith(".pdf") ||
+      url.toLowerCase().includes(".pdf?") ||
+      url.toLowerCase().includes(".pdf#") ||
+      (tab.title || "").toLowerCase().endsWith(".pdf");
+
+    if (isPDF) {
+      return scanPdfFromUrl(url, tab.title || "PDF document");
+    }
 
     // 2. Direct DOM extraction via executeScript (fastest, most reliable)
     let extractedText = "";
@@ -317,6 +325,37 @@ async function onScanPage() {
     console.error("[VerifAI] scan page error:", err);
     showError("Failed to scan page: " + (err.message || String(err)));
   }
+}
+
+/* ---------------- PDF URL scan (bypasses Chrome PDF viewer) ---------------- */
+async function scanPdfFromUrl(pdfUrl, title) {
+  // Show a progress state while the background fetches and uploads the PDF
+  clearPolling();
+  idlePanel.classList.add("hidden");
+  errorPanel.classList.add("hidden");
+  resultsPanel.classList.add("hidden");
+  progressPanel.classList.remove("hidden");
+  liveFeed.innerHTML = "";
+  claimList.innerHTML = "";
+  setGauge(null);
+  progressStage.textContent = "Fetching PDF from page...";
+  progressFill.style.width = "3%";
+
+  const res = await send("VERIFAI_SCAN_PDF_URL", { url: pdfUrl, title });
+  if (!res || !res.ok) {
+    progressPanel.classList.add("hidden");
+    idlePanel.classList.remove("hidden");
+    return showError(res?.error || "Could not read PDF. Make sure the backend is running and the PDF is accessible.");
+  }
+
+  // Backend already created an audit — set audit_id and start polling
+  state.auditId = res.auditId;
+  progressStage.textContent = `PDF loaded: ${title}`;
+  progressFill.style.width = "8%";
+  if (res.domain) setDomain({ domain: res.domain });
+  if (res.totalClaims != null)
+    progressMetaLeft.textContent = `0 / ${res.totalClaims} claims`;
+  startPolling();
 }
 
 function onRunPaste() {

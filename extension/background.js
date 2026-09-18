@@ -145,6 +145,58 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         return;
       }
 
+      // PDF URL bypass: fetch the raw PDF bytes and send to backend for extraction.
+      // This works because the service worker has <all_urls> permission and can fetch
+      // the raw file directly, bypassing Chrome's sandboxed PDF viewer entirely.
+      if (msg.type === "VERIFAI_SCAN_PDF_URL") {
+        const pdfUrl = msg.url;
+        const title = msg.title || "PDF document";
+        if (!pdfUrl) return sendResponse({ ok: false, error: "No PDF URL provided." });
+
+        let pdfBlob;
+        try {
+          const r = await fetch(pdfUrl);
+          if (!r.ok) throw new Error(`HTTP ${r.status}`);
+          pdfBlob = await r.blob();
+        } catch (fetchErr) {
+          return sendResponse({
+            ok: false,
+            error: `Could not download the PDF (${fetchErr.message}). The file may require authentication or be restricted.`,
+          });
+        }
+
+        // Derive a filename from the URL
+        const fileName = decodeURIComponent(pdfUrl.split("/").pop().split("?")[0]) || "document.pdf";
+
+        // POST to backend as multipart form upload
+        let data;
+        try {
+          const form = new FormData();
+          form.append("file", new File([pdfBlob], fileName, { type: "application/pdf" }));
+          const resp = await fetch(`${BACKEND}/api/audit/upload-pdf`, {
+            method: "POST",
+            body: form,
+          });
+          data = await resp.json();
+          if (!resp.ok) {
+            return sendResponse({ ok: false, error: data.detail || "Backend rejected the PDF." });
+          }
+        } catch (backendErr) {
+          return sendResponse({
+            ok: false,
+            error: "Cannot reach VerifAI backend. Make sure FastAPI is running on http://localhost:8000.",
+          });
+        }
+
+        sendResponse({
+          ok: true,
+          auditId: data.audit_id,
+          domain: data.domain || null,
+          totalClaims: data.total_claims ?? null,
+        });
+        return;
+      }
+
       if (msg.type === "VERIFAI_NEW_CAPTURE" && msg.text) {
         // Relay auto-scan capture from content script to sidebar
         lastCapturedText = { text: msg.text, source: msg.source || "auto-scan", timestamp: Date.now() };
