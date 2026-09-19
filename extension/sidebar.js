@@ -143,7 +143,27 @@ async function uploadPdfFile(file) {
     progressFill.style.width = "5%";
     if (data.domain) setDomain({ domain: data.domain });
     if (data.total_claims != null)
-      progressMetaLeft.textContent = `0 / ${data.total_claims} claims`;
+    // Store bytes in local storage for in-page PDF highlighter
+    const fileReader = new FileReader();
+    fileReader.onload = () => {
+      try {
+        const bytes = new Uint8Array(fileReader.result);
+        let binary = "";
+        const chunk = 8192;
+        for (let i = 0; i < bytes.length; i += chunk) {
+          binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+        }
+        const b64 = btoa(binary);
+        chrome.storage.local.set({
+          [`pdf_bytes_${data.audit_id}`]: b64,
+          last_pdf_bytes: b64,
+        });
+      } catch (storageErr) {
+        console.warn("[VerifAI] could not cache PDF bytes:", storageErr);
+      }
+    };
+    fileReader.readAsArrayBuffer(file);
+
     startPolling();
   } catch (err) {
     if (dropZone) dropZone.classList.remove("hidden");
@@ -363,6 +383,7 @@ async function scanPdfFromUrl(pdfUrl, title) {
 
   // Backend already created an audit — set audit_id and start polling
   state.auditId = res.auditId;
+  chrome.storage.local.set({ [`pdf_url_${res.auditId}`]: pdfUrl });
   progressStage.textContent = `PDF loaded: ${title}`;
   progressFill.style.width = "8%";
   if (res.domain) setDomain({ domain: res.domain });
@@ -693,7 +714,7 @@ function downloadPdf() {
 
 function openViewer() {
   if (!state.auditId) return;
-  const url = chrome.runtime.getURL(`viewer.html?auditId=${encodeURIComponent(state.auditId)}`);
+  const url = chrome.runtime.getURL(`pdf_viewer.html?auditId=${encodeURIComponent(state.auditId)}`);
   chrome.tabs.create({ url });
 }
 

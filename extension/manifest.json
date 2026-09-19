@@ -27,6 +27,22 @@
       "run_at": "document_idle"
     }
   ],
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "pdf.min.js",
+        "pdf.worker.min.js",
+        "pdf_viewer.html",
+        "pdf_viewer.css",
+        "pdf_viewer.js",
+        "viewer.html",
+        "viewer.css",
+        "viewer.js",
+        "highlight.css"
+      ],
+      "matches": ["<all_urls>"]
+    }
+  ],
   "side_panel": {
     "default_path": "sidebar.html"
   },

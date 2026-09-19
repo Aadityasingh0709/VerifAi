@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VerifAI — PDF In-Page Highlighter</title>
+  <link rel="stylesheet" href="pdf_viewer.css" />
+  <link rel="stylesheet" href="highlight.css" />
+  <script src="pdf.min.js"></script>
+</head>
+<body>
+  <!-- Top Navigation Bar -->
+  <header class="pdf-toolbar">
+    <div class="toolbar-left">
+      <div class="brand-logo">V</div>
+      <div class="doc-info">
+        <div id="doc-title" class="doc-title">Loading PDF...</div>
+        <div class="doc-sub" id="doc-subtitle">VerifAI Real-Time Audit</div>
+      </div>
+    </div>
+
+    <div class="toolbar-center">
+      <div class="page-nav">
+        <button id="btn-prev" class="btn-tool" title="Previous Page">◀</button>
+        <span class="page-info">
+          Page <input type="number" id="page-num" value="1" min="1" /> / <span id="page-count">--</span>
+        </span>
+        <button id="btn-next" class="btn-tool" title="Next Page">▶</button>
+      </div>
+
+      <div class="zoom-controls">
+        <button id="btn-zoom-out" class="btn-tool" title="Zoom Out">−</button>
+        <span id="zoom-level" class="zoom-label">120%</span>
+        <button id="btn-zoom-in" class="btn-tool" title="Zoom In">+</button>
+      </div>
+    </div>
+
+    <div class="toolbar-right">
+      <div id="trust-pill" class="trust-pill hidden">
+        <span id="trust-score-num" class="trust-score-num">--</span>
+        <span id="trust-band" class="trust-band">Audited</span>
+      </div>
+
+      <div class="filter-pills">
+        <button id="filter-all" class="filter-btn active">All</button>
+        <button id="filter-hall" class="filter-btn hall">⚠️ Hallucinations (<span id="count-hall">0</span>)</button>
+        <button id="filter-ver" class="filter-btn ver">✓ Verified (<span id="count-ver">0</span>)</button>
+      </div>
+
+      <button id="btn-download-pdf" class="btn-primary" title="Download Full Verification Certificate">⬇ Certificate</button>
+    </div>
+  </header>
+
+  <!-- Main PDF Viewer Canvas Area -->
+  <main id="pdf-viewer-container" class="pdf-viewer-container">
+    <div id="pdf-loading" class="pdf-loading">
+      <div class="spinner"></div>
+      <div id="loading-msg">Rendering PDF pages and applying in-page AI verification highlights...</div>
+    </div>
+    <div id="pdf-pages" class="pdf-pages"></div>
+  </main>
+
+  <script src="pdf_viewer.js"></script>
+</body>
+</html>
