@@ -177,7 +177,17 @@ async function checkBackend() {
 
 function send(type, extra) {
   return new Promise((resolve) => {
-    chrome.runtime.sendMessage({ type, ...(extra || {}) }, (r) => resolve(r));
+    try {
+      chrome.runtime.sendMessage({ type, ...(extra || {}) }, (r) => {
+        if (chrome.runtime.lastError) {
+          resolve({ ok: false, error: chrome.runtime.lastError.message });
+        } else {
+          resolve(r || { ok: false });
+        }
+      });
+    } catch (e) {
+      resolve({ ok: false, error: e.message });
+    }
   });
 }
 

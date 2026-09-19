@@ -167,7 +167,14 @@
         const t = bestText();
         if (t.length > 50 && t !== lastAutoText && Math.abs(t.length - lastAutoText.length) > 30) {
           lastAutoText = t;
-          chrome.runtime.sendMessage({ type: "VERIFAI_NEW_CAPTURE", text: t, source: "auto-scan" });
+          chrome.runtime.sendMessage(
+            { type: "VERIFAI_NEW_CAPTURE", text: t, source: "auto-scan" },
+            () => {
+              if (chrome.runtime.lastError) {
+                /* background waking up or unavailable, ignore */
+              }
+            }
+          );
         }
       }, 3500);
     });
@@ -477,10 +484,17 @@
           e.stopPropagation();
           span.classList.add("verifai-hl-pulse");
           setTimeout(() => span.classList.remove("verifai-hl-pulse"), 1200);
-          chrome.runtime.sendMessage({
-            type: "VERIFAI_FOCUS_CLAIM",
-            claimId: claim.claim?.id,
-          });
+          chrome.runtime.sendMessage(
+            {
+              type: "VERIFAI_FOCUS_CLAIM",
+              claimId: claim.claim?.id,
+            },
+            () => {
+              if (chrome.runtime.lastError) {
+                /* sidebar not open, ignore */
+              }
+            }
+          );
         });
 
         frag.appendChild(span);

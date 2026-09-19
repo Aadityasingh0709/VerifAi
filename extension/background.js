@@ -6,36 +6,33 @@
 const BACKEND = "http://localhost:8000";
 let lastCapturedText = null;
 
-// Open the side panel when the action icon is clicked.
-chrome.action.onClicked.addListener(async (tab) => {
-  try {
-    await chrome.sidePanel.open({ tabId: tab.id });
-  } catch (e) {
-    console.warn("[VerifAI] could not open side panel:", e);
-  }
-});
+// Open side panel when toolbar action icon is clicked
+if (chrome.sidePanel && chrome.sidePanel.setPanelBehavior) {
+  chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .catch((e) => console.warn("[VerifAI] setPanelBehavior:", e));
+}
 
-// Let the side panel open when the user clicks the toolbar icon.
-chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((e) => console.warn("[VerifAI] setPanelBehavior failed:", e));
-
-// Register the right-click "Verify with VerifAI" menu on first install.
+// Register context menu safely
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "verifai-verify-selection",
-    title: "Verify with VerifAI",
-    contexts: ["selection"],
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "verifai-verify-selection",
+      title: "Verify with VerifAI",
+      contexts: ["selection"],
+    });
   });
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  if (info.menuItemId !== "verifai-verify-selection" || !info.selectionText)
+  if (info.menuItemId !== "verifai-verify-selection" || !info.selectionText || !tab)
     return;
-  try {
-    await chrome.sidePanel.open({ tabId: tab.id });
-  } catch (e) {
-    /* ignore */
+  if (chrome.sidePanel && chrome.sidePanel.open) {
+    try {
+      await chrome.sidePanel.open({ tabId: tab.id });
+    } catch (e) {
+      /* ignore if already open */
+    }
   }
   queueCapture(tab.id, info.selectionText, "selection");
 });
@@ -313,11 +310,18 @@ function queueCapture(tabId, text, source) {
   lastCapturedText = { text, source, timestamp: Date.now() };
   chrome.storage.local.set({ lastCapture: lastCapturedText });
   // Broadcast to the side panel if it's open.
-  chrome.runtime.sendMessage({
-    type: "VERIFAI_NEW_CAPTURE",
-    text,
-    source,
-  });
+  chrome.runtime.sendMessage(
+    {
+      type: "VERIFAI_NEW_CAPTURE",
+      text,
+      source,
+    },
+    () => {
+      if (chrome.runtime.lastError) {
+        /* side panel is not open, ignore */
+      }
+    }
+  );
 }
 
 async function activeTab() {
