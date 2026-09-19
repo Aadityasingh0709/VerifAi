@@ -533,6 +533,11 @@ function showResults(data) {
   renderDocHighlightView(data.document_text || "", claims);
   switchViewTab("claims");
   highlightOnPage();
+
+  const isPdfDoc = (data.document_title || "").toLowerCase().endsWith(".pdf");
+  if (isPdfDoc && state.auditId) {
+    openViewer();
+  }
 }
 
 function renderClaims(claims) {

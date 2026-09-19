@@ -164,6 +164,9 @@
       span.style.fontFamily = item.fontName || "sans-serif";
       span.style.left = `${tx[4]}px`;
       span.style.top = `${tx[5] - fontHeight}px`;
+      span.style.height = `${fontHeight * 1.15}px`;
+      span.style.display = "inline-block";
+      span.style.boxSizing = "border-box";
       if (item.width) {
         span.style.width = `${item.width * currentScale}px`;
       }
@@ -175,8 +178,11 @@
     if (!auditData || !auditData.claims) return;
     const claims = auditData.claims;
 
-    // Sort claims by sentence length descending
+    // Prioritize hallucinations and longer sentences
     const sorted = [...claims].sort((a, b) => {
+      const vScore = { HALLUCINATED: 3, UNVERIFIED: 2, VERIFIED: 1 };
+      const diff = (vScore[b.verdict] || 0) - (vScore[a.verdict] || 0);
+      if (diff !== 0) return diff;
       const lenA = (a.claim?.source_sentence || a.claim?.claim_text || "").length;
       const lenB = (b.claim?.source_sentence || b.claim?.claim_text || "").length;
       return lenB - lenA;
@@ -196,26 +202,41 @@
       }
 
       for (const cv of sorted) {
-        const sentence = (cv.claim?.source_sentence || cv.claim?.claim_text || "").trim();
-        if (!sentence || sentence.length < 8) continue;
+        const candidates = [];
+        const src = (cv.claim?.source_sentence || "").trim();
+        const txt = (cv.claim?.claim_text || "").trim();
+        if (src && src.length >= 8) candidates.push(src);
+        if (txt && txt.length >= 8 && txt !== src) candidates.push(txt);
 
-        const normCombined = combined.toLowerCase().replace(/\s+/g, " ");
-        const normSentence = sentence.toLowerCase().replace(/\s+/g, " ");
+        if (src && src.length > 35) {
+          const words = src.split(/\s+/);
+          if (words.length >= 6) {
+            candidates.push(words.slice(0, 7).join(" "));
+            candidates.push(words.slice(-6).join(" "));
+          }
+        }
 
-        let matchIdx = normCombined.indexOf(normSentence);
-        if (matchIdx !== -1) {
-          const matchEnd = matchIdx + normSentence.length;
-          // Wrap affected spans in highlight class
-          for (const item of map) {
-            if (item.end > matchIdx && item.start < matchEnd) {
-              const v = cv.verdict || "UNVERIFIED";
-              item.span.classList.add("verifai-hl", `verifai-hl-${v.toLowerCase()}`);
-              item.span.setAttribute("data-verdict", v);
-              item.span.setAttribute("data-claim-id", cv.claim?.id);
+        let claimMatched = false;
+        for (const needle of candidates) {
+          const normCombined = combined.toLowerCase().replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/\s+/g, " ");
+          const normNeedle = needle.toLowerCase().replace(/[\u2018\u2019]/g, "'").replace(/[\u201C\u201D]/g, '"').replace(/\s+/g, " ");
 
-              item.span.addEventListener("mouseenter", (e) => showTooltip(e.target, cv));
-              item.span.addEventListener("mouseleave", () => hideTooltip());
+          let matchIdx = normCombined.indexOf(normNeedle);
+          if (matchIdx !== -1) {
+            const matchEnd = matchIdx + normNeedle.length;
+            for (const item of map) {
+              if (item.end > matchIdx && item.start < matchEnd) {
+                const v = cv.verdict || "UNVERIFIED";
+                item.span.classList.add("verifai-hl", `verifai-hl-${v.toLowerCase()}`);
+                item.span.setAttribute("data-verdict", v);
+                item.span.setAttribute("data-claim-id", cv.claim?.id);
+
+                item.span.addEventListener("mouseenter", (e) => showTooltip(e.target, cv));
+                item.span.addEventListener("mouseleave", () => hideTooltip());
+              }
             }
+            claimMatched = true;
+            break;
           }
         }
       }
