@@ -134,13 +134,21 @@
       </div>
 
       <div class="results-actions">
+        <button id="btn-open-viewer" class="btn-primary" style="grid-column: 1 / -1; justify-content: center; gap: 6px; font-weight: 600; padding: 9px 12px;">
+          📄 Open Full Highlighted Reader
+        </button>
         <button id="btn-download-pdf" class="btn-ghost">
-          Download PDF Certificate
+          Download Certificate
         </button>
         <button id="btn-highlight-page" class="btn-ghost">
-          Highlight On Page
+          Highlight On Webpage
         </button>
-        <button id="btn-reset" class="btn-ghost">New Audit</button>
+        <button id="btn-reset" class="btn-ghost" style="grid-column: 1 / -1;">New Audit</button>
+      </div>
+
+      <div class="view-tabs">
+        <button id="tab-claims" class="view-tab active">🔍 Claims (<span id="tab-claims-count">0</span>)</button>
+        <button id="tab-doc" class="view-tab">📄 Highlighted Text</button>
       </div>
 
       <div id="correct-info-panel" class="correct-info-panel hidden">
@@ -149,6 +157,7 @@
       </div>
 
       <div id="claim-list" class="claim-list"></div>
+      <div id="doc-highlight-view" class="doc-highlight-view hidden"></div>
     </section>
 
     <section id="error-panel" class="panel hidden">

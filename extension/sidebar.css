@@ -825,3 +825,98 @@ button {
 @keyframes spin {
   to { transform: rotate(360deg); }
 }
+
+/* ---------------- view switcher tabs ---------------- */
+.view-tabs {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0 10px 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 6px;
+}
+
+.view-tab {
+  flex: 1;
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 140ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.view-tab:hover {
+  border-color: var(--border-strong);
+  color: var(--text);
+}
+
+.view-tab.active {
+  background: rgba(59, 130, 246, 0.16);
+  border-color: rgba(59, 130, 246, 0.45);
+  color: #93c5fd;
+}
+
+/* ---------------- in-sidebar doc highlight view ---------------- */
+.doc-highlight-view {
+  background: var(--bg-elev);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: #cbd5e1;
+  max-height: 480px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.doc-hl {
+  padding: 2px 4px;
+  margin: 0 1px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 140ms ease;
+  display: inline;
+}
+
+.doc-hl-VERIFIED {
+  background: rgba(34, 197, 94, 0.18);
+  border-bottom: 2px solid #22c55e;
+  color: #86efac;
+}
+
+.doc-hl-UNVERIFIED {
+  background: rgba(245, 158, 11, 0.22);
+  border-bottom: 2px solid #f59e0b;
+  color: #fde047;
+}
+
+.doc-hl-HALLUCINATED {
+  background: rgba(239, 68, 68, 0.28);
+  border-bottom: 2.5px solid #ef4444;
+  color: #fca5a5;
+  font-weight: 600;
+}
+
+.doc-hl:hover {
+  filter: brightness(1.2);
+  box-shadow: 0 0 8px rgba(0,0,0,0.3);
+}
+
+.doc-hl-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: 3px;
+  margin-right: 4px;
+  vertical-align: middle;
+}
+

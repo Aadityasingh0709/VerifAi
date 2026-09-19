@@ -102,6 +102,56 @@ def _render_claim_html(cv: ClaimVerdict) -> str:
     )
 
 
+def _render_annotated_document_html(doc_text: str, claims: List[ClaimVerdict]) -> str:
+    if not doc_text:
+        return ""
+    sorted_claims = sorted(
+        claims,
+        key=lambda c: len(c.claim.source_sentence or c.claim.claim_text or ""),
+        reverse=True,
+    )
+    matches = []
+    for cv in sorted_claims:
+        needle = (cv.claim.source_sentence or cv.claim.claim_text or "").strip()
+        if not needle or len(needle) < 8:
+            continue
+        idx = doc_text.find(needle)
+        if idx != -1:
+            matches.append((idx, idx + len(needle), cv))
+
+    matches.sort(key=lambda m: m[0])
+    non_overlapping = []
+    last_end = 0
+    for start, end, cv in matches:
+        if start >= last_end:
+            non_overlapping.append((start, end, cv))
+            last_end = end
+
+    parts = []
+    cursor = 0
+    for start, end, cv in non_overlapping:
+        if start > cursor:
+            parts.append(html.escape(doc_text[cursor:start]))
+        v = cv.verdict
+        color_bg = {"VERIFIED": "#dcfce7", "UNVERIFIED": "#fef3c7", "HALLUCINATED": "#fee2e2"}.get(v, "#f1f5f9")
+        color_border = {"VERIFIED": "#22c55e", "UNVERIFIED": "#f59e0b", "HALLUCINATED": "#ef4444"}.get(v, "#94a3b8")
+        snip = html.escape(doc_text[start:end])
+        parts.append(
+            f'<span style="background:{color_bg};border-bottom:2px solid {color_border};padding:2px 4px;border-radius:3px;" '
+            f'title="{v} ({cv.confidence}%)"><b>[{v[:4]}]</b> {snip}</span>'
+        )
+        cursor = end
+    if cursor < len(doc_text):
+        parts.append(html.escape(doc_text[cursor:]))
+
+    annotated_body = "".join(parts).replace("\n", "<br>")
+    return (
+        f'<h2>Annotated Document with AI Verification Highlights</h2>'
+        f'<div style="background:#f8fafc;border:1px solid #e2e8f0;padding:12pt;border-radius:6pt;font-size:10pt;line-height:1.6;margin:12pt 0;">'
+        f'{annotated_body}</div>'
+    )
+
+
 def _pdf_css() -> str:
     return """
     @page { size: A4; margin: 22mm 18mm; @bottom-center { content: "This report was generated automatically by VerifAI. Verdicts are probabilistic, not legal determinations.  \u2014  page " counter(page) " of " counter(pages); color: #64748b; font-size: 8.5pt; } }
@@ -173,6 +223,10 @@ def _render_reportlab_pdf(result: AuditResult, trust_score: TrustScore, created:
             f"and {trust_score.hallucinated_count} hallucinated claims.",
             body,
         ),
+        Spacer(1, 6),
+        Paragraph("Annotated Document Text", styles["Heading2"]),
+        Paragraph(html.escape(result.document_text[:1200] + ("..." if len(result.document_text) > 1200 else "")), body),
+        Spacer(1, 6),
         Paragraph("Claim-by-Claim Breakdown", styles["Heading2"]),
     ]
     for claim_verdict in result.claims:
@@ -237,6 +291,8 @@ def render_pdf_bytes(result: AuditResult) -> bytes:
         <div class="stat" style="background:#fee2e2"><span class="num" style="color:#991b1b">{hallucinated}</span><span class="label">Hallucinated</span></div>
         <div class="stat" style="background:#fef2f2"><span class="num" style="color:#7f1d1d">{ts.high_stakes_hallucinations}</span><span class="label">High-stakes hallucinations</span></div>
       </div>
+
+      {_render_annotated_document_html(result.document_text, result.claims)}
 
       <h2>Claim-by-Claim Breakdown</h2>
       {claim_htmls}

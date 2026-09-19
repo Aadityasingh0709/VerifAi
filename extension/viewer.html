@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VerifAI — Highlighted Document Reader</title>
+  <link rel="stylesheet" href="viewer.css" />
+</head>
+<body>
+  <header class="reader-header">
+    <div class="brand">
+      <div class="logo">V</div>
+      <div>
+        <div class="brand-title">VerifAI Document Reader</div>
+        <div class="brand-subtitle" id="doc-title">Loading document...</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <div id="domain-pill" class="domain-pill hidden">
+        <span class="dot"></span>
+        <span id="domain-label">General</span>
+      </div>
+      <button id="btn-download-pdf" class="btn-primary">⬇ Download Certificate</button>
+    </div>
+  </header>
+
+  <main class="reader-layout">
+    <!-- Left: Highlighted Document Pane -->
+    <section class="doc-pane">
+      <div class="pane-header">
+        <div class="pane-title">📄 Annotated Document Text</div>
+        <div class="legend">
+          <span class="legend-item legend-hallucinated">● Hallucinated</span>
+          <span class="legend-item legend-unverified">● Unverified</span>
+          <span class="legend-item legend-verified">● Verified</span>
+        </div>
+      </div>
+      <div id="doc-content" class="doc-content">
+        <div class="loading-state">Loading document and verification data...</div>
+      </div>
+    </section>
+
+    <!-- Right: Audit Inspector Pane -->
+    <section class="inspector-pane">
+      <div class="pane-header">
+        <div class="pane-title">🔍 Verification Inspector</div>
+      </div>
+
+      <div class="trust-card">
+        <div class="score-row">
+          <div id="gauge-score" class="big-score">--</div>
+          <div class="score-meta">
+            <div id="gauge-band" class="band-label">Calculating...</div>
+            <div id="gauge-stats" class="stats-label">-- verified · -- hallucinated</div>
+          </div>
+        </div>
+        <div id="exec-summary" class="exec-summary"></div>
+      </div>
+
+      <div class="inspector-section-title">Claim Breakdown</div>
+      <div id="inspector-claims" class="inspector-claims">
+        <!-- Claim cards rendered here -->
+      </div>
+    </section>
+  </main>
+
+  <script src="viewer.js"></script>
+</body>
+</html>

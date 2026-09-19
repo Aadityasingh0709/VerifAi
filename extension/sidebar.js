@@ -67,6 +67,9 @@ function wireUp() {
   $("btn-reset").addEventListener("click", reset);
   $("btn-download-pdf").addEventListener("click", downloadPdf);
   $("btn-highlight-page").addEventListener("click", highlightOnPage);
+  $("btn-open-viewer").addEventListener("click", openViewer);
+  $("tab-claims").addEventListener("click", () => switchViewTab("claims"));
+  $("tab-doc").addEventListener("click", () => switchViewTab("doc"));
   $("btn-error-dismiss").addEventListener("click", () => {
     errorPanel.classList.add("hidden");
     idlePanel.classList.remove("hidden");
@@ -489,7 +492,13 @@ function showResults(data) {
     correctPanel.classList.add("hidden");
   }
 
-  renderClaims(data.claims || []);
+  const claims = data.claims || [];
+  const claimsCountEl = $("tab-claims-count");
+  if (claimsCountEl) claimsCountEl.textContent = claims.length;
+
+  renderClaims(claims);
+  renderDocHighlightView(data.document_text || "", claims);
+  switchViewTab("claims");
   highlightOnPage();
 }
 
@@ -670,6 +679,95 @@ function hexWithAlpha(hex, a) {
 function downloadPdf() {
   if (!state.auditId) return;
   send("VERIFAI_OPEN_PDF", { auditId: state.auditId });
+}
+
+function openViewer() {
+  if (!state.auditId) return;
+  const url = chrome.runtime.getURL(`viewer.html?auditId=${encodeURIComponent(state.auditId)}`);
+  chrome.tabs.create({ url });
+}
+
+function switchViewTab(tabName) {
+  const tabClaims = $("tab-claims");
+  const tabDoc = $("tab-doc");
+  const claimListEl = $("claim-list");
+  const docViewEl = $("doc-highlight-view");
+
+  if (tabName === "doc") {
+    tabDoc?.classList.add("active");
+    tabClaims?.classList.remove("active");
+    claimListEl?.classList.add("hidden");
+    docViewEl?.classList.remove("hidden");
+  } else {
+    tabClaims?.classList.add("active");
+    tabDoc?.classList.remove("active");
+    claimListEl?.classList.remove("hidden");
+    docViewEl?.classList.add("hidden");
+  }
+}
+
+function renderDocHighlightView(rawText, claims) {
+  const docViewEl = $("doc-highlight-view");
+  if (!docViewEl) return;
+
+  if (!rawText) {
+    docViewEl.innerHTML = '<div style="color:var(--text-dim);text-align:center;padding:20px;">No document text captured.</div>';
+    return;
+  }
+
+  // Sort claims by sentence length descending
+  const sorted = [...claims].sort((a, b) => {
+    const lenA = (a.claim?.source_sentence || a.claim?.claim_text || "").length;
+    const lenB = (b.claim?.source_sentence || b.claim?.claim_text || "").length;
+    return lenB - lenA;
+  });
+
+  const matches = [];
+  for (const cv of sorted) {
+    const needle = (cv.claim?.source_sentence || cv.claim?.claim_text || "").trim();
+    if (!needle || needle.length < 8) continue;
+    let idx = rawText.indexOf(needle);
+    if (idx !== -1) {
+      matches.push({ start: idx, end: idx + needle.length, cv });
+    }
+  }
+
+  matches.sort((a, b) => a.start - b.start);
+  const nonOverlapping = [];
+  let lastEnd = 0;
+  for (const m of matches) {
+    if (m.start >= lastEnd) {
+      nonOverlapping.push(m);
+      lastEnd = m.end;
+    }
+  }
+
+  let out = "";
+  let cursor = 0;
+  for (const m of nonOverlapping) {
+    if (m.start > cursor) {
+      out += escapeHtml(rawText.slice(cursor, m.start));
+    }
+    const cv = m.cv;
+    const v = cv.verdict || "UNVERIFIED";
+    const icon = v === "HALLUCINATED" ? "⚠" : v === "VERIFIED" ? "✓" : "?";
+    const snip = escapeHtml(rawText.slice(m.start, m.end));
+    out += `<span class="doc-hl doc-hl-${v}" data-claim-id="${cv.claim?.id}" title="${v} (${cv.confidence}%)"><span class="doc-hl-badge doc-hl-${v}">${icon} ${v}</span>${snip}</span>`;
+    cursor = m.end;
+  }
+  if (cursor < rawText.length) {
+    out += escapeHtml(rawText.slice(cursor));
+  }
+
+  docViewEl.innerHTML = out;
+
+  docViewEl.querySelectorAll(".doc-hl").forEach(span => {
+    span.addEventListener("click", () => {
+      const id = span.getAttribute("data-claim-id");
+      switchViewTab("claims");
+      focusClaim(id);
+    });
+  });
 }
 
 async function highlightOnPage() {
