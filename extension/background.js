@@ -253,12 +253,34 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 
       if (msg.type === "VERIFAI_APPLY_HIGHLIGHTS") {
         const tab = await activeTab();
-        if (!tab) return sendResponse({ ok: false });
-        chrome.tabs.sendMessage(tab.id, {
-          type: "VERIFAI_APPLY_HIGHLIGHTS_TO_PAGE",
-          claims: msg.claims,
-        });
-        sendResponse({ ok: true });
+        if (!tab || !tab.id) return sendResponse({ ok: false, error: "No active tab" });
+        try {
+          const resp = await chrome.tabs.sendMessage(tab.id, {
+            type: "VERIFAI_APPLY_HIGHLIGHTS_TO_PAGE",
+            claims: msg.claims || [],
+          });
+          sendResponse({ ok: true, count: resp?.count ?? 0 });
+        } catch (err) {
+          // If content script was not loaded in this tab yet, inject it and try again
+          try {
+            await chrome.scripting.executeScript({
+              target: { tabId: tab.id },
+              files: ["content.js"],
+            });
+            await chrome.scripting.insertCSS({
+              target: { tabId: tab.id },
+              files: ["highlight.css"],
+            }).catch(() => {});
+            const resp = await chrome.tabs.sendMessage(tab.id, {
+              type: "VERIFAI_APPLY_HIGHLIGHTS_TO_PAGE",
+              claims: msg.claims || [],
+            });
+            sendResponse({ ok: true, count: resp?.count ?? 0 });
+          } catch (injectErr) {
+            console.warn("[VerifAI] Could not inject content script for highlighting:", injectErr);
+            sendResponse({ ok: false, error: injectErr.message });
+          }
+        }
         return;
       }
 

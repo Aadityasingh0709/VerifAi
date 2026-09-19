@@ -490,6 +490,7 @@ function showResults(data) {
   }
 
   renderClaims(data.claims || []);
+  highlightOnPage();
 }
 
 function renderClaims(claims) {
@@ -673,13 +674,23 @@ function downloadPdf() {
 
 async function highlightOnPage() {
   if (!state.currentResult) return;
-  await send("VERIFAI_APPLY_HIGHLIGHTS", {
+  const btn = $("btn-highlight-page");
+  const origText = btn ? btn.textContent : "";
+  if (btn) btn.textContent = "Highlighting...";
+  const res = await send("VERIFAI_APPLY_HIGHLIGHTS", {
     claims: state.currentResult.claims || [],
   });
+  if (btn) {
+    btn.textContent = (res && res.count > 0) ? `✓ Highlighted (${res.count})` : "✓ Highlighted";
+    setTimeout(() => {
+      if (btn) btn.textContent = origText || "Highlight On Page";
+    }, 2200);
+  }
 }
 
 function reset() {
   clearPolling();
+  send("VERIFAI_APPLY_HIGHLIGHTS", { claims: [] });
   state.auditId = null;
   state.currentResult = null;
   resultsPanel.classList.add("hidden");
