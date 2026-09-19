@@ -142,7 +142,9 @@ async function uploadPdfFile(file) {
     progressStage.textContent = `PDF loaded: ${file.name}`;
     progressFill.style.width = "5%";
     if (data.domain) setDomain({ domain: data.domain });
-    if (data.total_claims != null)
+    if (data.total_claims != null) {
+      progressMetaLeft.textContent = `0 / ${data.total_claims} claims`;
+    }
     // Store bytes in local storage for in-page PDF highlighter
     const fileReader = new FileReader();
     fileReader.onload = () => {
